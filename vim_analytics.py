@@ -150,8 +150,6 @@ if __name__ == '__main__':
     else:
         print_results(results, addons_dir=args.addons_dir)
 
-    print args.addons_dir
-
     if args.debug:
         import ipdb
         ipdb.set_trace()
