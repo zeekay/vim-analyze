@@ -7,7 +7,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 
 
-DEFAULT_ADDONS_DIR = os.path.abspath(os.path.expanduser('~/.vim/addons'))
+DEFAULT_ADDONS_DIR = os.path.realpath(os.path.expanduser('~/.vim/addons'))
 VIM = 'vim'
 
 
@@ -70,6 +70,7 @@ def group_by_addon(results, addons_dir=DEFAULT_ADDONS_DIR):
     '''
     Tries to group results by addon/bundle and derive a total.
     '''
+    addons_dir = addons_dir.rstrip('/') + '/'
     addons = defaultdict(lambda: defaultdict(list))
     for action, averages in results.items():
         prefix = 'sourcing %s' % addons_dir
@@ -77,7 +78,7 @@ def group_by_addon(results, addons_dir=DEFAULT_ADDONS_DIR):
             sourced_file = action[len(prefix):]
             addon = sourced_file.split(os.path.sep, 1)[0]
             addons[addon]['averages'].append(averages['elapsed']['average'])
-            addons[addon]['files'].append((sourced_file, averages['elapsed']['average']))
+            addons[addon]['files'].append((sourced_file[len(addon)+1:], averages['elapsed']['average']))
 
     # sum averages to find total time per addon
     for addon in addons:
@@ -102,7 +103,7 @@ def run_vim(times, log_file=None):
         os.remove(log_file)
 
 
-def print_results(results):
+def print_results(results, addons_dir=DEFAULT_ADDONS_DIR):
     '''
     Prints sorted results.
     '''
@@ -111,7 +112,7 @@ def print_results(results):
         print '%07.3f %07.3f - %s' % (averages['elapsed']['average'], averages['time']['average'], action)
     print
 
-    for addon, averages in sorted(group_by_addon(results).items(), key=lambda x: x[1]['total_average']):
+    for addon, averages in sorted(group_by_addon(results, addons_dir).items(), key=lambda x: x[1]['total_average']):
         print addon
         for file, average in averages['files']:
             print '%07.3f - %s' % (average, file)
@@ -144,10 +145,12 @@ if __name__ == '__main__':
         import sys
         stdout = sys.stdout
         sys.stdout = open(args.save, 'w')
-        print_results(results)
+        print_results(results, addons_dir=args.addons_dir)
         sys.stdout = stdout
     else:
-        print_results(results)
+        print_results(results, addons_dir=args.addons_dir)
+
+    print args.addons_dir
 
     if args.debug:
         import ipdb
