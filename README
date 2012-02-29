@@ -1,0 +1,1 @@
+This is a tool I wrote (primarily) to analyze vim's startup time. It organizes times for all sourced files by average time across runs, as well as breaking down and totally average time per addon.
