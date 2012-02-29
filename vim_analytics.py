@@ -114,7 +114,7 @@ def print_results(results, addons_dir=DEFAULT_ADDONS_DIR):
 
     for addon, averages in sorted(group_by_addon(results, addons_dir).items(), key=lambda x: x[1]['total_average']):
         print addon
-        for file, average in averages['files']:
+        for file, average in sorted(averages['files'], key=lambda x: x[1]):
             print '%07.3f - %s' % (average, file)
         print '%07.3f total' % averages['total_average']
         print
