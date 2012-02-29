@@ -63,7 +63,9 @@ def process_log(filename='vim-startuptime.log'):
             avg = sum(v)/len(v)
             results[action][k] = {'times': v, 'average': avg}
 
-    return results
+    # get total time and return results without VIM messages
+    total_time = results['--- VIM STARTED ---']['time']['average']
+    return {k:v for k,v in results.iteritems() if not k.startswith('--- VIM')}, total_time
 
 
 def group_by_addon(results, addons_dir=DEFAULT_ADDONS_DIR):
@@ -103,13 +105,13 @@ def run_vim(times, log_file=None):
         os.remove(log_file)
 
 
-def print_results(results, addons_dir=DEFAULT_ADDONS_DIR):
+def print_results(results, total_time, addons_dir=DEFAULT_ADDONS_DIR):
     '''
     Prints sorted results.
     '''
-    print 'total   elapsed   source file'
+    print 'total     action'
     for action, averages in sorted(results.items(), key=lambda x: x[1]['elapsed']['average']):
-        print '%07.3f %07.3f - %s' % (averages['elapsed']['average'], averages['time']['average'], action)
+        print '%07.3f - %s' % (averages['elapsed']['average'], action)
     print
 
     for addon, averages in sorted(group_by_addon(results, addons_dir).items(), key=lambda x: x[1]['total_average']):
@@ -119,7 +121,7 @@ def print_results(results, addons_dir=DEFAULT_ADDONS_DIR):
         print '%07.3f total' % averages['total_average']
         print
 
-    print '%07.3f total' % results['--- VIM STARTED ---']['time']['average']
+    print '%07.3f total' % total_time
 
 
 if __name__ == '__main__':
@@ -136,19 +138,19 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.log:
-        results = process_log(args.log)
+        results, total_time = process_log(args.log)
     else:
         with run_vim(args.runs) as log:
-            results = process_log(log)
+            results, total_time = process_log(log)
 
     if args.save:
         import sys
         stdout = sys.stdout
         sys.stdout = open(args.save, 'w')
-        print_results(results, addons_dir=args.addons_dir)
+        print_results(results, total_time, addons_dir=args.addons_dir)
         sys.stdout = stdout
     else:
-        print_results(results, addons_dir=args.addons_dir)
+        print_results(results, total_time, addons_dir=args.addons_dir)
 
     if args.debug:
         import ipdb
