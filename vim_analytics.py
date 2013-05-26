@@ -6,10 +6,8 @@ import tempfile
 from collections import defaultdict
 from contextlib import contextmanager
 
-
-DEFAULT_ADDONS_DIR = os.path.realpath(os.path.expanduser('~/.vim/addons'))
+DEFAULT_ADDONS_DIR = os.path.expanduser('~/.vim/addons')
 VIM = 'vim'
-
 
 def process_run(lines):
     '''
@@ -89,15 +87,24 @@ def group_by_addon(results, addons_dir=DEFAULT_ADDONS_DIR):
 
 
 @contextmanager
-def run_vim(times, log_file=None):
+def run_vim(times, cmd=None, log_file=None):
     '''
     Runs vim specified number of times saving startuptime log to temporary file and returnings results of those runs.
     '''
     if not log_file:
         fd, log_file = tempfile.mkstemp()
 
+    if not cmd:
+        cmd = []
+    else:
+        cmd = cmd.split()
+
+    cmd.insert(0, VIM)
+    cmd.append('--startuptime')
+    cmd.append(log_file)
+
     for i in xrange(times):
-        subprocess.call([VIM, '--startuptime', log_file])
+        subprocess.call(cmd)
     yield log_file
 
     # clean up if we created a temporary file
@@ -129,10 +136,11 @@ if __name__ == '__main__':
         description="A tool for analyzing vim's startup time",
         epilog="...lies, damned lies and statistics."
     )
-    parser.add_argument('-r', '--runs', action='store', type=int, default=1, nargs=1, help='Number of runs to make before averaging them')
-    parser.add_argument('-l', '--log', action='store', nargs=1, help='Log file to analyze')
-    parser.add_argument('-d', '--debug', action='store_true', help='Debug results (drops you into ipdb)')
     parser.add_argument('-a', '--addons-dir', action='store', nargs=1, default=DEFAULT_ADDONS_DIR, help='Location of your addons/bundle dir so we can group results properly')
+    parser.add_argument('-c', '--cmd', action='store', help='Command to run vim with')
+    parser.add_argument('-d', '--debug', action='store_true', help='Debug results (drops you into ipdb)')
+    parser.add_argument('-l', '--log', action='store', nargs=1, help='Log file to analyze')
+    parser.add_argument('-r', '--runs', action='store', type=int, default=1, nargs=1, help='Number of runs to make before averaging them')
     parser.add_argument('-s', '--save', action='store', required=False, help='Save results to a file instead of printing them')
 
     args = parser.parse_args()
@@ -140,7 +148,7 @@ if __name__ == '__main__':
     if args.log:
         results, total_time = process_log(args.log)
     else:
-        with run_vim(args.runs) as log:
+        with run_vim(args.runs, args.cmd) as log:
             results, total_time = process_log(log)
 
     if args.save:
